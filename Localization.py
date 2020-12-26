@@ -44,14 +44,11 @@ for row in sorted_data:
     
     if prev_QR == None:
         prev_QR = curr_QR
-        count = 0
-        sum_dist = 0
+        distance = []
     if prev_QR == curr_QR:
-        sum_dist +=  row[6] 
-        count += 1
-        avg = sum_dist/count
-        print(row[6])
+        distance.append(row[6])
+        
     else:
-        print(count)
-        print(avg)
+        print(np.mean(distance))
+        print(np.var(distance))
         break
