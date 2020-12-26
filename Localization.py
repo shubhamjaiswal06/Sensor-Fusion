@@ -38,7 +38,8 @@ for row in data:
         
 sorted_data = np.sort(data,axis=0)
 sorted_data[:,6] = sorted_data[:,6]+6.7
-
+avg_distance = []
+var_distance = []
 for row in sorted_data:
     curr_QR = row[1]
     
@@ -49,6 +50,13 @@ for row in sorted_data:
         distance.append(row[6])
         
     else:
+        avg_distance.append(np.mean(distance))
+        var_distance.append(np.var(distance))
         print(np.mean(distance))
         print(np.var(distance))
-        break
+        distance.clear()
+        prev_QR = curr_QR
+        distance.append(row[6])
+        
+avg_distance.append(np.mean(distance))
+var_distance.append(np.var(distance))
