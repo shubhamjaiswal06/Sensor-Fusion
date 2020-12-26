@@ -37,7 +37,7 @@ for row in data:
         break
         
 sorted_data = np.sort(data,axis=0)
-TrueDistance = sorted_data[:,6]+6.7
+sorted_data[:,6] = sorted_data[:,6]+6.7
 
 for row in sorted_data:
     curr_QR = row[1]
@@ -45,10 +45,13 @@ for row in sorted_data:
     if prev_QR == None:
         prev_QR = curr_QR
         count = 0
+        sum_dist = 0
     if prev_QR == curr_QR:
-        
+        sum_dist +=  row[6] 
         count += 1
-        print(curr_QR)
+        avg = sum_dist/count
+        print(row[6])
     else:
         print(count)
+        print(avg)
         break
