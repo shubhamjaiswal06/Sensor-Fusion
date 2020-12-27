@@ -6,7 +6,7 @@ Created on Sat Dec 26 10:22:32 2020
 """
 #import os
 import numpy as np
-import pandas as pd
+
 #import csv
 # a= np.array(['Hallo','World'])
 # a= np.append(a,'@')
@@ -16,31 +16,37 @@ import pandas as pd
 #     print(i)
 
 
-def cost_function(Jacobean_Mat,measurement,estimated):
-    print("Inside cost function")
-    cost = Jacobean_Mat.transpose() * (measurement - estimated)
-    return cost
-
-def jacobean_calculations(actual_height, f_length,QR_global_pose,robot_estimated_pose,psyi):
-    
-    ##This function creates the jacobean matrix for calculations ##
-    # For the current measurement model, 2 X 3 jacobean will be created
+def Gradient_decent_cost_function(actual_height,f_length,QR_global_pose,robot_estimated_pose,psyi,Measurement):
     
     first_term = QR_global_pose[0] - robot_estimated_pose[0]
     second_term = QR_global_pose[0] - robot_estimated_pose[0]
     Square_both = first_term**2 + second_term**2
     
+    estimated_height_QR = actual_height * f_length /(np.sqrt(Square_both)) 
+    estimated_Cx = f_length * np.tan(np.arctan(second_term/first_term) - psyi)
+    Estimated = [[estimated_height_QR], [estimated_Cx]]
+    
+    Jacobean_Mat = jacobean_calculations(actual_height, f_length,first_term,second_term,Square_both,psyi)
+    
+    cost = Jacobean_Mat.transpose() * (Measurement - Estimated)
+    
+    return cost
+
+def jacobean_calculations(actual_height, f_length,first_term,second_term,Square_both,psyi):
+    
+    ##This function creates the jacobean matrix for calculations ##
+    # For the current measurement model, 2 X 3 jacobean will be created
+    
     Jacobean_Mat[0,0] = actual_height * f_length * (first_term) / pow(Square_both,3/2)
     Jacobean_Mat[0,1] = actual_height * f_length * (second_term) / pow(Square_both,3/2)
     Jacobean_Mat[0,2] = 0
-    Jacobean_Mat[1,0] = f_length  * pow(np.arccos(np.arctan(second_term/first_term) - psyi),2) * (second_term / Square_both)
+    Jacobean_Mat[1,0] =  f_length * pow(np.arccos(np.arctan(second_term/first_term) - psyi),2) * (second_term / Square_both)
     Jacobean_Mat[1,1] = -f_length * pow(np.arccos(np.arctan(second_term/first_term) - psyi),2) * (first_term / Square_both)
     Jacobean_Mat[1,2] = -f_length * pow(np.arccos(np.arctan(second_term/first_term) - psyi),2) 
-    #Jacobean_Mat = 
     
     return Jacobean_Mat
-    
-    
+
+
 prev_time = None
 prev_QR = None
 QR_codes = set()
