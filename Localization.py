@@ -7,13 +7,6 @@ Created on Sat Dec 26 10:22:32 2020
 #import os
 import numpy as np
 
-#import csv
-# a= np.array(['Hallo','World'])
-# a= np.append(a,'@')
-# print("current array : {}".format(a))
-
-# for i in a:
-#     print(i)
 
 def initilization():
     # Initial assumption about global position and attitude of robot
@@ -71,7 +64,7 @@ QR_codes.update(data[:,1])
 QR_codes =sorted(QR_codes)
 for row in data:
     curr_time = row[0]
-    print(curr_time)
+    
     if prev_time == None:
         prev_time = curr_time
         count = 0
