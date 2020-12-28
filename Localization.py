@@ -11,10 +11,13 @@ import numpy as np
 def initilization():
     # Initial assumption about global position and attitude of robot
     global robot_estimated_pose,psyi,Measurement,actual_height,f_length,step_size
-    robot_estimated_pose = [35, 46]
     psyi = 75
-
-    Measurement = np.array([[0],[2]])           # considered initial measurement 
+    psyi = np.radians(psyi)
+    
+    robot_estimated_pose = np.array([[50], [60],[ psyi]])
+    
+    
+    Measurement = np.array([[0],[0]])           # considered initial measurement 
     
     actual_height = 11.5                        # Actual height in cm
 
@@ -22,20 +25,22 @@ def initilization():
     step_size = 0.02                            # Gradient Decent Step_size
 
 
-def Gradient_decent_cost_function(actual_height,f_length,QR_global_pose,robot_estimated_pose,psyi,Measurement):
+def Gradient_decent_cost_function(QR_global_pose,robot_estimated_pose,psyi,Measurement):
     
-    first_term = QR_global_pose[0] - robot_estimated_pose[0]
-    second_term = QR_global_pose[1] - robot_estimated_pose[1]
+    first_term = QR_global_pose[0] - robot_estimated_pose[0,0]
+    second_term = QR_global_pose[1] - robot_estimated_pose[1,0]
     Square_both = first_term**2 + second_term**2
     
     estimated_height_QR = actual_height * f_length /(np.sqrt(Square_both)) 
     estimated_Cx = f_length * np.tan(np.arctan(second_term/first_term) - psyi)
-    Estimated = np.array([[estimated_height_QR], [estimated_Cx]])
+    Estimated = np.array([[0],[0]])
+    Estimated[0,0] = estimated_height_QR
+    Estimated[1,0] = estimated_Cx
     
     Jacobean_Mat = jacobean_calculations(actual_height, f_length,first_term,second_term,Square_both,psyi)
     
-    Gradient_decent_cost = Jacobean_Mat.transpose() * (Measurement - Estimated)
-    
+    #Gradient_decent_cost = Jacobean_Mat.transpose() * (Measurement - Estimated)
+    Gradient_decent_cost =  np.matmul(Jacobean_Mat.transpose(),  (Measurement - Estimated))
     return Gradient_decent_cost
 
 def jacobean_calculations(actual_height, f_length,first_term,second_term,Square_both,psyi):
@@ -46,9 +51,9 @@ def jacobean_calculations(actual_height, f_length,first_term,second_term,Square_
     Jacobean_Mat[0,0] = actual_height * f_length * (first_term) / pow(Square_both,3/2)
     Jacobean_Mat[0,1] = actual_height * f_length * (second_term) / pow(Square_both,3/2)
     Jacobean_Mat[0,2] = 0
-    Jacobean_Mat[1,0] =  f_length * pow(np.arccos(np.arctan(second_term/first_term) - psyi),2) * (second_term / Square_both)
-    Jacobean_Mat[1,1] = -f_length * pow(np.arccos(np.arctan(second_term/first_term) - psyi),2) * (first_term / Square_both)
-    Jacobean_Mat[1,2] = -f_length * pow(np.arccos(np.arctan(second_term/first_term) - psyi),2) 
+    Jacobean_Mat[1,0] =  f_length * pow(np.arccos(np.arctan2(second_term,first_term) - psyi),2) * (second_term / Square_both)
+    Jacobean_Mat[1,1] = -f_length * pow(np.arccos(np.arctan2(second_term,first_term) - psyi),2) * (first_term / Square_both)
+    Jacobean_Mat[1,2] = -f_length * pow(np.arccos(np.arctan2(second_term,first_term) - psyi),2) 
     
     return Jacobean_Mat
 
@@ -133,9 +138,25 @@ for row in sorted_data:
         prev_QR = curr_QR
         #Create height and center pos buffers
         initilization()
+        QR_code_index = np.where(global_pos_Data == curr_QR)
+        QR_global_pose = [global_pos_Data[QR_code_index[0][0],1],global_pos_Data[QR_code_index[0][0],2]]
+        Measurement[0,0] = row[5]
+        Measurement[1,0] = row[2]
+        update_direction = Gradient_decent_cost_function(QR_global_pose,robot_estimated_pose,psyi,Measurement)
+        
+        robot_estimated_pose = np.add(robot_estimated_pose , step_size * update_direction)
+        robot_estimated_pose_arr = list(robot_estimated_pose)
     if prev_QR == curr_QR:
         # Fill the respective buffer
         measured_height.append(row[5])
         center_pos.append(row[2])
+        QR_code_index = np.where(global_pos_Data == curr_QR)
+        QR_global_pose = [global_pos_Data[QR_code_index[0][0],1],global_pos_Data[QR_code_index[0][0],2]]
+        Measurement[0,0] = row[5]
+        Measurement[1,0] = row[2]
+        update_direction = Gradient_decent_cost_function(QR_global_pose,robot_estimated_pose,psyi,Measurement)
+        
+        robot_estimated_pose = np.add(robot_estimated_pose , step_size * update_direction)
+        robot_estimated_pose_arr.append(robot_estimated_pose)
     else:
         break
