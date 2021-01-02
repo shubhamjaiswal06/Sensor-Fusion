@@ -7,7 +7,8 @@ Created on Sat Dec 26 10:22:32 2020
 #import os
 import numpy as np
 import math , mpmath
-
+import matplotlib.pyplot as plt
+import time
 
 def initilization():
     # Initial assumption about global position and attitude of robot
@@ -15,7 +16,7 @@ def initilization():
     psyi = 75
     psyi = np.radians(psyi)
     
-    robot_estimated_pose = np.array([[40], [50],[ psyi]])
+    robot_estimated_pose = np.array([[0], [0],[ psyi]])
     
     
     Measurement = np.zeros((14,1))           # considered initial measurement 
@@ -23,7 +24,7 @@ def initilization():
     actual_height = 11.5                        # Actual height in cm
 
     f_length = 524                              #focal length in pixels
-    step_size = 0.02                            # Gradient Decent Step_size
+    step_size = 0.002                            # Gradient Decent Step_size
 
 
 def estimate(QR_global_pose,robot_estimated_pose):
@@ -134,7 +135,7 @@ def jacobean_calculations(actual_height, f_length,QR_global_pose,robot_estimated
     return Jacobean_Mat
 
 
-
+t0 = time.time()
 prev_time = None
 prev_QR = None
 QR_codes = set()
@@ -214,8 +215,9 @@ R_Matrix = np.zeros((2,1))
 #QR_code_index = np.where(global_pos_Data == curr_QR)
 #QR_global_pose = [global_pos_Data[QR_code_index[0][0],1],global_pos_Data[QR_code_index[0][0],2]]
 initilization()
-robot_estimated_pose_arr = []
-num_iterations = 100
+pose_x = []
+pose_y = []
+num_iterations = 3000
 
 Total_data = np.zeros((7,7))
 Total_data[:,0] = QR_codes
@@ -224,7 +226,7 @@ Total_data[:,2] = avg_center_pos
 Total_data[:,3] = global_Xpos_QR
 Total_data[:,4] = global_Ypos_QR
 Total_data[:,5] = var_measured_height
-Total_data[:,6] = var_measured_height       
+Total_data[:,6] = var_center_pos       
 
 
 QR_global_pose = np.array([global_Xpos_QR, global_Ypos_QR]).transpose() 
@@ -243,4 +245,14 @@ for i in range(num_iterations):
         # QR_global_pose = [global_pos_Data[QR_code_index[0][0],1],global_pos_Data[QR_code_index[0][0],2]]
     update_direction += Gradient_decent_cost_function(QR_global_pose,robot_estimated_pose,Measurement,R_Matrix)
     robot_estimated_pose = np.subtract(robot_estimated_pose , step_size * update_direction)
-    robot_estimated_pose_arr.append(robot_estimated_pose)
+    
+    pose_x.append(robot_estimated_pose[0])
+    pose_y.append(robot_estimated_pose[1])
+
+plt.plot(pose_x,label="P_x")
+plt.plot(pose_y,label="P_y")
+plt.ylabel("Position values")
+plt.xlabel("iterations")
+plt.legend()
+plt.show()
+print(time.time() - t0)
