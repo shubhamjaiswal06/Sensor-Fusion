@@ -71,25 +71,30 @@ H_mean =[mean(H_20);mean(H_21);mean(H_25);mean(H_26);mean(H_27);mean(H_31);mean(
 H_var = [var(H_20);var(H_21);var(H_25);0.0001;var(H_27);var(H_31);var(H_32)];
 Center_X_var = [var(Center_X_20);var(Center_X_21);var(Center_X_25);0.0001;var(Center_X_27);var(Center_X_31);var(Center_X_32)];
 Center_X_mean = [mean(Center_X_20);mean(Center_X_21);mean(Center_X_25);mean(Center_X_26);mean(Center_X_27);mean(Center_X_31);mean(Center_X_32)];
-% Gx_H = 6037.5*(1./((QR_code_Sx-Px).^2+(121.5-Py).^2).^0.5);
-% Gx_C = 525*tan(atan((121.5-Py)./(QR_code_Sx-Px))-Psy);
 
-Y = [H_mean;Center_X_mean];
-% Gx = [Gx_H;Gx_C];
-
-R = diag([H_var' Center_X_var']); 
-X = [Px;Py;Psy];
-alpha = 0.00001;
-time = 300;
+Y = H_mean;
+R = diag(H_var'); 
+X = [Px;Py];
+alpha = 0.001;
+time = 30000;
 for t = 1:time
-    X = X - alpha*dJdX(Px,Py,Psy,QR_code_Sx,R,Y);
+    X = X - alpha*dJdX(Px,Py,QR_code_Sx,R,Y);
 %    Px = Px - alpha*dJdPx(Px,Py,H_mean,QR_code_Sx,H_var);
 %    Py = Py - alpha*dJdPy(Px,Py,H_mean,QR_code_Sx,H_var);
    Px = X(1);
    Py = X(2);
-   Psy = X(3);
+
    A(t)=Px;
    B(t)=Py;
-   C(t)=Psy;
    
+end
+
+Psy = 0;
+Y = Center_X_mean;
+R = diag(Center_X_var');
+alpha = 10^-10;
+time = 20000;
+for t = 1:time
+  Psy = Psy - alpha*dJdPsy(Px,Py,Psy,QR_code_Sx,R,Y);
+  C(t) = Psy;
 end
