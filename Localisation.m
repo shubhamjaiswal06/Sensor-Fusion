@@ -1,0 +1,95 @@
+clear all;
+T = readtable('camera_localization_task5.csv');
+Data = table2array(T);
+T1 = readtable('qr_code_position_in_global_coordinate.csv');
+Data_global = table2array(T1);
+
+Time = Data(:,1);
+QR_numb = Data(:,2);
+Center_X = Data(:,3);
+Center_Z = Data(:,4);
+Width = Data(:,5);
+Height = Data(:,6);
+Dist = Data(:,7);
+Angle = Data(:,8);
+
+%From left to right, detected QR code sequence for wall 1 is:
+% 20 21 25 26 27 31 32
+
+QR_code_Sx = [25;37;50.5;62.5;74.5;86.5;98];
+
+k=1;
+l=1;
+m=1;
+n=1;
+o=1;
+p=1;
+q=1;
+
+for i = 1:length(QR_numb)
+    if(QR_numb(i) == 20)
+        H_20(k) = Height(i);
+        Center_X_20(k) = Center_X(i);
+        k=k+1;
+    end
+    if(QR_numb(i) == 21)
+        H_21(l) = Height(i);
+        Center_X_21(l) = Center_X(i);
+        l=l+1;
+    end
+    if(QR_numb(i) == 25)
+        H_25(m) = Height(i);
+        Center_X_25(m) = Center_X(i);
+        m=m+1;
+    end
+    if(QR_numb(i) == 26)
+        H_26(n) = Height(i);
+        Center_X_26(n) = Center_X(i);
+        n=n+1;
+    end
+    if(QR_numb(i) == 27)
+        H_27(o) = Height(i);
+        Center_X_27(o) = Center_X(i);
+        o=o+1;
+    end
+    if(QR_numb(i) == 31)
+        H_31(p) = Height(i);
+        Center_X_31(p) = Center_X(i);
+        p=p+1;
+    end
+    if(QR_numb(i) == 32)
+        H_32(q) = Height(i);
+        Center_X_32(q) = Center_X(i);
+        q=q+1;
+    end
+end
+
+Px = 0;
+Py = 0;
+Psy = 0;
+H_mean =[mean(H_20);mean(H_21);mean(H_25);mean(H_26);mean(H_27);mean(H_31);mean(H_32)];
+H_var = [var(H_20);var(H_21);var(H_25);0.0001;var(H_27);var(H_31);var(H_32)];
+Center_X_var = [var(Center_X_20);var(Center_X_21);var(Center_X_25);0.0001;var(Center_X_27);var(Center_X_31);var(Center_X_32)];
+Center_X_mean = [mean(Center_X_20);mean(Center_X_21);mean(Center_X_25);mean(Center_X_26);mean(Center_X_27);mean(Center_X_31);mean(Center_X_32)];
+% Gx_H = 6037.5*(1./((QR_code_Sx-Px).^2+(121.5-Py).^2).^0.5);
+% Gx_C = 525*tan(atan((121.5-Py)./(QR_code_Sx-Px))-Psy);
+
+Y = [H_mean;Center_X_mean];
+% Gx = [Gx_H;Gx_C];
+
+R = diag([H_var' Center_X_var']); 
+X = [Px;Py;Psy];
+alpha = 0.00001;
+time = 300;
+for t = 1:time
+    X = X - alpha*dJdX(Px,Py,Psy,QR_code_Sx,R,Y);
+%    Px = Px - alpha*dJdPx(Px,Py,H_mean,QR_code_Sx,H_var);
+%    Py = Py - alpha*dJdPy(Px,Py,H_mean,QR_code_Sx,H_var);
+   Px = X(1);
+   Py = X(2);
+   Psy = X(3);
+   A(t)=Px;
+   B(t)=Py;
+   C(t)=Psy;
+   
+end
