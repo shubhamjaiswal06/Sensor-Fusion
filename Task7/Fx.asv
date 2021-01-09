@@ -1,0 +1,4 @@
+function [J_Matrix] = Fx(i,V,Phi)
+J_Matrix = [1 0 -V(i)*Sind(Phi(i));0 1 V(i)*Cos(Phi(i));0 0 1];
+
+end
