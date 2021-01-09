@@ -1,0 +1,9 @@
+function [Center_cor_x] = QR_code_Sx(i)
+t = CameraTimeStamp_SingleValue(i);
+k =
+for i = 1:144
+    if t == Time_Camera(i)
+        Center_cor_x(k) = Global_cor_x(QR_No(i));
+        k = k+1;
+    end
+end
