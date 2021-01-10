@@ -128,48 +128,68 @@ Single_Cx_i(k) = Avg_Cx_i;
 
 V = 10*(Single_PWM_L + Single_PWM_R);
 V = V';
-Phi_dot = Single_Gyro_Z - 0.15 ;
+Phi_dot = Single_Gyro_Z - 0.4 ;
 
 %Prediction and measurement update
-Px(1,1) = 16;
-Py(1,1) = 50;
-Phi(1,1) = 90;
-P = zeros(3,3,144);
-P(1,1,1) = 0.01;
-P(2,2,1) = 0.01;
-P(3,3,1) = 0.01;
+
+Fx_1 = zeros(2,2,144);
+P1 = zeros(2,2,144);
+P1(1,1,1) = 0.01;
+P1(2,2,1) = 0.01;
+
+
+Fx_2 = zeros(1,1,144);
+P2 = zeros(1,1,144);
+P2(1,1,1) = 0.01;
+
+R1 = 1.5;
+R2 = 1.5;
+
+% P = zeros(3,3,144);
+% P(1,1,1) = 0.01;
+% P(2,2,1) = 0.01;
+% P(3,3,1) = 0.01;
 %K = zeros(3,2,144);
 X = zeros(3,1,144);
+X(:,:,1) = [0;0;90];
 % R = [1 0;0 8];
-Q = [1 0 0;0 1 0;0 0 0.087];
+Q1 = [0.1 0;0 0.1];
+Q2 = 0.087;
+% Q = [1 0 0;0 1 0;0 0 0.087];
 for i = 1:143
     %Prediction
     X(:,:,i+1) = X(:,:,i) + [(V(i)*cosd(X(3,1,i)));(V(i)*sind(X(3,1,i)));Phi_dot(i)];
-    Px(i+1)=X(1,1,i+1);
-    Py(i+1)=X(2,1,i+1);
-    Phi(i+1)=X(3,1,i+1);
-    Px_D(i+1)=X(1,1,i+1);
-    Py_D(i+1)=X(2,1,i+1);
-    Phi_D(i+1)=X(3,1,i+1);
-%     Px(i+1,1) = Px(i,1) + (V(i)*cosd(Phi(i)));
-%     Py(i+1,1) = Py(i,1) + (V(i)*sind(Phi(i)));
-%     Phi(i+1,1) = Phi(i,1) + Phi_dot(i);
-    P(:,:,i+1) = Fx(V(i),X(3,1,i))*P(:,:,i)*(Fx(V(i),X(3,1,i)))'+ Q;
-    P_D(:,:,i+1) = Fx(V(i),X(3,1,i))*P(:,:,i)*(Fx(V(i),X(3,1,i)))'+ Q;
+
+    P1(:,:,i+1) = Fx1()*P1(:,:,i)*Fx1()'+ Q1;
+    P2(:,:,i+1) = Fx2()*P2(:,:,i)*Fx2()'+ Q2;
+    
     
     %Measurement Update
     Sx = QR_code_Sx(i,CameraTimeStamp_SingleValue,Time_Camera,QR_no,Data_global);
     Sy = QR_code_Sy(i,CameraTimeStamp_SingleValue,Time_Camera,QR_no,Data_global);
-      
-    H_x = Hx(Px(i+1),Py(i+1),Phi(i+1),Sx,Sy);
-      
-    K = P(:,:,i+1)*H_x'*inv((H_x*P(:,:,i+1)*H_x')+ R(length(Sx)));
-    X(:,:,i+1) = X(:,:,i+1) + K*Error(i,CameraTimeStamp_SingleValue,Time_Camera,H_i,Cx_i,Sx,Sy,X(:,:,i+1));
-    P(:,:,i+1) = P(:,:,i+1) - K*((H_x*P(:,:,i+1)*H_x')+R(length(Sx)))*(K');
+%       
+    H_x1 = Hx1(X(1,1,i+1),X(2,1,i+1),Sx,Sy);
+    K1 = P1(:,:,i+1)*H_x1'*inv((H_x1*P1(:,:,i+1)*H_x1')+ R1*eye(length(Sx)));
+    X(1:2,1,i+1) = X(1:2,1,i+1) + K1*Error1(i,CameraTimeStamp_SingleValue,Time_Camera,H_i,Sx,Sy,X(:,:,i+1));
+    P1(:,:,i+1) = P1(:,:,i+1) - K1*((H_x1*P1(:,:,i+1)*H_x1')+R1*eye(length(Sx)))*(K1');
     
-    Px(i+1)=X(1,1,i+1);
-    Py(i+1)=X(2,1,i+1);
-    Phi(i+1)=X(3,1,i+1);
+    H_x2 = Hx2(X(1,1,i+1),X(2,1,i+1),X(3,1,i+1),Sx,Sy);
+    K2 = P2(:,:,i+1)*H_x2'*inv((H_x2*P2(:,:,i+1)*H_x2')+ R2*eye(length(Sx)));
+    X(3,1,i+1) = X(3,1,i+1) + K2*Error2(i,CameraTimeStamp_SingleValue,Time_Camera,Cx_i,Sx,Sy,X(:,:,i+1));
+    P2(:,:,i+1) = P2(:,:,i+1) - K2*((H_x2*P2(:,:,i+1)*H_x2')+R2*eye(length(Sx)))*(K2');
+    
+%       
+%     K = P(:,:,i+1)*H_x'*inv((H_x*P(:,:,i+1)*H_x')+ R(length(Sx)));
+%     X(:,:,i+1) = X(:,:,i+1) + K*Error(i,CameraTimeStamp_SingleValue,Time_Camera,H_i,Cx_i,Sx,Sy,X(:,:,i+1));
+%     P(:,:,i+1) = P(:,:,i+1) - K*((H_x*P(:,:,i+1)*H_x')+R(length(Sx)))*(K');
+%     
+%     Px(i+1)=X(1,1,i+1);
+%     Py(i+1)=X(2,1,i+1);
+%     Phi(i+1)=X(3,1,i+1);
       
+end
+for i=1:144
+Px(i,1) = X(1,1,i);
+Py(i,1) = X(2,1,i);
 end
 plot(Px,Py);
