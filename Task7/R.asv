@@ -1,0 +1,11 @@
+function [R_mat] = R(size)
+R = eye(size);
+for i = 1:size
+   if(rem(i,2)==0)
+       R(i,i) = 8;
+   else
+       R(i,i) = 1; 
+   end
+end
+R_mat = R;
+end

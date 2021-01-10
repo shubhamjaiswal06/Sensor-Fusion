@@ -88,7 +88,7 @@ end
 Sum_Z = Sum_Z + Gyro_Z(i+1);
 Avg_Gyro_Z = Sum_Z/l;
 Single_Gyro_Z(k) = Avg_Gyro_Z;
-Single_Gyro_Z = [zeros(1,10) Single_Gyro_Z(1:end) Single_Gyro_Zones(1,6)];%appending zeros
+Single_Gyro_Z = [zeros(1,10) Single_Gyro_Z(1:end) Single_Gyro_Z(end)*ones(1,6)];%appending last value
 
 %Averaging values of single time stamp for Hi and Cxi of camera measurement
 k=1;
@@ -128,19 +128,20 @@ Single_Cx_i(k) = Avg_Cx_i;
 
 V = 10*(Single_PWM_L + Single_PWM_R);
 V = V';
-Phi_dot = Single_Gyro_Z ;
+Phi_dot = Single_Gyro_Z  ;
 
 %Prediction and measurement update
 Px(1,1) = 0;
 Py(1,1) = 0;
 Phi(1,1) = 0;
 P = zeros(3,3,144);
-P(1,1,1) = 0.01;
-P(2,2,1) = 0.01;
-P(3,3,1) = 0.01;
+P(1,1,1) = 0.1;
+P(2,2,1) = 0.1;
+P(3,3,1) = 0.1;
 K = zeros(3,2,144);
 X = zeros(3,1,144);
-
+R = [1 0;0 8];
+Q = [1 0 0;0 1 0;0 0 0.087];
 for i = 1:143
     %Prediction
     X(:,:,i+1) = X(:,:,i) + [(V(i)*cosd(X(3,1,i)));(V(i)*sind(X(3,1,i)));Phi_dot(i)];
@@ -150,12 +151,17 @@ for i = 1:143
 %     Px(i+1,1) = Px(i,1) + (V(i)*cosd(Phi(i)));
 %     Py(i+1,1) = Py(i,1) + (V(i)*sind(Phi(i)));
 %     Phi(i+1,1) = Phi(i,1) + Phi_dot(i);
-    P(:,:,i+1) = Fx(V(i),X(3,1,i))*P(:,:,i)*(Fx(V(i),X(3,1,i)))';
+    P(:,:,i+1) = Fx(V(i),X(3,1,i))*P(:,:,i)*(Fx(V(i),X(3,1,i)))'+ Q;
     
 %     %Measurement Update
-      H_x = Hx(Px(i+1),Py(i+1),Phi(i+1),QR_code_Sx(i,CameraTimeStamp_SingleValue,Time_Camera,QR_no,Data_global),QR_code_Sy(i,CameraTimeStamp_SingleValue,Time_Camera,QR_no,Data_global));
-      K(:,:,i+1) = P(:,:,i+1)*(H_x)'*inv((H_x)*P(:,:,i+1)*(H_x)');
-%     
-      P(:,:,i+1) = P(:,:,i+1) - K(:,:,i+1)*(H_x*P(:,:,i+1)*(H_x'))*(K(:,:,i+1))';
+      Sx = QR_code_Sx(i,CameraTimeStamp_SingleValue,Time_Camera,QR_no,Data_global);
+      Sy = QR_code_Sy(i,CameraTimeStamp_SingleValue,Time_Camera,QR_no,Data_global);
+      
+          H_x = Hx(Px(i+1),Py(i+1),Phi(i+1),Sx,Sy);
+      
+          K(:,:,i+1) = P(:,:,i+1)*H_x'*inv(H_x*P(:,:,i+1)*H_x')+ R);
+          X(:,:,i+1) = X(:,:,i+1) + K(:,:,i+1)*Error(i,j,CameraTimeStamp_SingleValue,Time_Camera,H_i,Cx_i,Sx(j),Sy(j),X(:,:,i+1));
+          P(:,:,i+1) = P(:,:,i+1) - K(:,:,i+1)*(H_x*P(:,:,i+1)*H_x'+R)*(K(:,:,i+1)');
+      end
 end
-
+plot(Px,Py);

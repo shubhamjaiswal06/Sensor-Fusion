@@ -128,34 +128,48 @@ Single_Cx_i(k) = Avg_Cx_i;
 
 V = 10*(Single_PWM_L + Single_PWM_R);
 V = V';
-Phi_dot = Single_Gyro_Z ;
+Phi_dot = Single_Gyro_Z - 0.15 ;
 
 %Prediction and measurement update
-Px(1,1) = 0;
-Py(1,1) = 0;
-Phi(1,1) = 0;
+Px(1,1) = 16;
+Py(1,1) = 50;
+Phi(1,1) = 90;
 P = zeros(3,3,144);
-P(1,1,1) = 10;
-P(2,2,1) = 10;
-P(3,3,1) = 10;
-K = zeros(3,2,144);
+P(1,1,1) = 0.01;
+P(2,2,1) = 0.01;
+P(3,3,1) = 0.01;
+%K = zeros(3,2,144);
 X = zeros(3,1,144);
-
+% R = [1 0;0 8];
+Q = [1 0 0;0 1 0;0 0 0.087];
 for i = 1:143
     %Prediction
     X(:,:,i+1) = X(:,:,i) + [(V(i)*cosd(X(3,1,i)));(V(i)*sind(X(3,1,i)));Phi_dot(i)];
     Px(i+1)=X(1,1,i+1);
     Py(i+1)=X(2,1,i+1);
     Phi(i+1)=X(3,1,i+1);
+    Px_D(i+1)=X(1,1,i+1);
+    Py_D(i+1)=X(2,1,i+1);
+    Phi_D(i+1)=X(3,1,i+1);
 %     Px(i+1,1) = Px(i,1) + (V(i)*cosd(Phi(i)));
 %     Py(i+1,1) = Py(i,1) + (V(i)*sind(Phi(i)));
 %     Phi(i+1,1) = Phi(i,1) + Phi_dot(i);
-    P(:,:,i+1) = Fx(V(i),X(3,1,i))*P(:,:,i)*(Fx(V(i),X(3,1,i)))';
+    P(:,:,i+1) = Fx(V(i),X(3,1,i))*P(:,:,i)*(Fx(V(i),X(3,1,i)))'+ Q;
+    P_D(:,:,i+1) = Fx(V(i),X(3,1,i))*P(:,:,i)*(Fx(V(i),X(3,1,i)))'+ Q;
     
-%     %Measurement Update
-      H_x = Hx(Px(i+1),Py(i+1),Phi(i+1),QR_code_Sx(i,CameraTimeStamp_SingleValue,Time_Camera,QR_no,Data_global),QR_code_Sy(i,CameraTimeStamp_SingleValue,Time_Camera,QR_no,Data_global));
-      K(:,:,i+1) = P(:,:,i+1)*(H_x)'*inv((H_x)*P(:,:,i+1)*(H_x)');
-%     
-      P(:,:,i+1) = P(:,:,i+1) - K(:,:,i+1)*(H_x*P(:,:,i+1)*(H_x'))*(K(:,:,i+1))';
+    %Measurement Update
+    Sx = QR_code_Sx(i,CameraTimeStamp_SingleValue,Time_Camera,QR_no,Data_global);
+    Sy = QR_code_Sy(i,CameraTimeStamp_SingleValue,Time_Camera,QR_no,Data_global);
+      
+    H_x = Hx(Px(i+1),Py(i+1),Phi(i+1),Sx,Sy);
+      
+    K = P(:,:,i+1)*H_x'*inv((H_x*P(:,:,i+1)*H_x')+ R(length(Sx)));
+    X(:,:,i+1) = X(:,:,i+1) + K*Error(i,CameraTimeStamp_SingleValue,Time_Camera,H_i,Cx_i,Sx,Sy,X(:,:,i+1));
+    P(:,:,i+1) = P(:,:,i+1) - K*((H_x*P(:,:,i+1)*H_x')+R(length(Sx)))*(K');
+    
+    Px(i+1)=X(1,1,i+1);
+    Py(i+1)=X(2,1,i+1);
+    Phi(i+1)=X(3,1,i+1);
+      
 end
-
+plot(Px,Py);
